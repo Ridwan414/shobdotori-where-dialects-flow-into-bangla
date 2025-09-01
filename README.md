@@ -1,4 +1,4 @@
-# Shobdotori - Bangla Dialect Speech Collection
+# শব্দতরী : Where Dialects flow into Bangla
 
 Minimalistic web platform for collecting Bangladeshi dialect audio recordings with Google Drive storage.
 
@@ -10,12 +10,12 @@ Minimalistic web platform for collecting Bangladeshi dialect audio recordings wi
 
 ## Features
 
-- 🎤 Browser-based audio recording
-- 🌍 24 Bangladeshi dialects support
-- 📁 Direct Google Drive storage
-- 🔄 Automatic audio conversion (WebM → WAV)
-- 🏷️ Proper file labeling and organization
-- ☁️ Cloud-native (Netlify + Render + Google Drive)
+-  Browser-based audio recording
+-  24 Bangladeshi dialects support
+-  Direct Google Drive storage
+-  Automatic audio conversion (WebM → WAV)
+-  Proper file labeling and organization
+-  Cloud-native (Netlify + Render + Google Drive)
 
 ## Quick Start
 

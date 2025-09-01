@@ -136,11 +136,11 @@ async function uploadToGoogleDrive(buffer, filename, dialect) {
     
     const response = await Promise.race([uploadPromise, timeoutPromise]);
     
-    console.log(`✅ Upload completed for ${filename} - ID: ${response.data.id}`);
+    console.log(` Upload completed for ${filename} - ID: ${response.data.id}`);
     return response.data;
     
   } catch (error) {
-    console.error(`❌ Upload failed for ${filename}:`, error.message);
+    console.error(` Upload failed for ${filename}:`, error.message);
     throw error;
   }
 }
@@ -252,11 +252,11 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
     }
     
     // Upload to Google Drive
-    console.log(`🚀 Starting Google Drive upload for ${finalFilename}...`);
+    console.log(` Starting Google Drive upload for ${finalFilename}...`);
     const driveFile = await uploadToGoogleDrive(audioBuffer, finalFilename, dialect);
     
-    console.log(`🎉 Upload process completed successfully for ${finalFilename}`);
-    console.log(`📁 File stored in Google Drive with ID: ${driveFile.id}`);
+    console.log(` Upload process completed successfully for ${finalFilename}`);
+    console.log(` File stored in Google Drive with ID: ${driveFile.id}`);
     
     res.json({
       success: true,
@@ -271,8 +271,8 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
     });
     
   } catch (error) {
-    console.error('❌ Upload error:', error.message);
-    console.error('📋 Error details:', error);
+    console.error(' Upload error:', error.message);
+    console.error(' Error details:', error);
     
     // Send error response
     res.status(500).json({
@@ -333,38 +333,38 @@ app.use((err, req, res, next) => {
 
 // Start server
 const server = app.listen(PORT, () => {
-  console.log(`🚀 Shobdotori Backend running on port ${PORT}`);
-  console.log(`📁 Google Drive Folder ID: ${process.env.GOOGLE_DRIVE_FOLDER_ID}`);
-  console.log(`🌍 Environment: ${process.env.NODE_ENV}`);
-  console.log(`⏰ Server started at: ${new Date().toISOString()}`);
-  console.log(`🔗 API endpoints available at: http://localhost:${PORT}/api/*`);
-  console.log(`🌐 Frontend available at: http://localhost:${PORT}/`);
+  console.log(` Shobdotori Backend running on port ${PORT}`);
+  console.log(` Google Drive Folder ID: ${process.env.GOOGLE_DRIVE_FOLDER_ID}`);
+  console.log(` Environment: ${process.env.NODE_ENV}`);
+  console.log(` Server started at: ${new Date().toISOString()}`);
+  console.log(` API endpoints available at: http://localhost:${PORT}/api/*`);
+  console.log(` Frontend available at: http://localhost:${PORT}/`);
 });
 
 // Graceful shutdown handling
 process.on('SIGTERM', () => {
-  console.log('🛑 SIGTERM received, shutting down gracefully...');
+  console.log(' SIGTERM received, shutting down gracefully...');
   server.close(() => {
-    console.log('✅ Server closed');
+    console.log(' Server closed');
     process.exit(0);
   });
 });
 
 process.on('SIGINT', () => {
-  console.log('🛑 SIGINT received, shutting down gracefully...');
+  console.log(' SIGINT received, shutting down gracefully...');
   server.close(() => {
-    console.log('✅ Server closed');
+    console.log(' Server closed');
     process.exit(0);
   });
 });
 
 // Handle uncaught exceptions
 process.on('uncaughtException', (err) => {
-  console.error('💥 Uncaught Exception:', err);
+  console.error(' Uncaught Exception:', err);
   process.exit(1);
 });
 
 process.on('unhandledRejection', (reason, promise) => {
-  console.error('💥 Unhandled Rejection at:', promise, 'reason:', reason);
+  console.error(' Unhandled Rejection at:', promise, 'reason:', reason);
   process.exit(1);
 });
