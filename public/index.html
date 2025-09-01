@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>শব্দতরী : Where Dialects flow into Bangla</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" type="image/png" href="images/logo.png">
+</head>
+<body>
+  <div class="overlay"></div>
+  <div class="container">
+    <h1 class="title">"শব্দতরী : Where Dialects flow into Bangla"</h1>
+
+    <!-- Dropdown -->
+    <div class="dropdown">
+      <label for="dialect">উপভাষা নির্বাচন করুন:</label>
+      <select id="dialect">
+        <option value="">-- Select --</option>
+        <option value="dhaka">ঢাকা</option>
+        <option value="chittagong">চট্টগ্রাম</option>
+        <option value="mymensingh">ময়মনসিংহ</option>
+        <option value="comilla">কুমিল্লা</option>
+        <option value="noakhali">নোয়াখালী</option>
+        <option value="feni">ফেনী</option>
+        <option value="brahmanbaria">ব্রাহ্মণবাড়িয়া</option>
+        <option value="gaibandha">গাইবান্ধা</option>
+        <option value="kurigram">কুড়িগ্রাম</option>
+        <option value="jessore">যশোর</option>
+        <option value="kushtia">কুষ্টিয়া</option>
+        <option value="jhenaidah">ঝিনাইদহ</option>
+        <option value="bagerhat">বাগেরহাট</option>
+        <option value="khulna">খুলনা</option>
+        <option value="patuakhali">পটুয়াখালী</option>
+        <option value="bhola">ভোলা</option>
+        <option value="panchagarh">পঞ্চগড়</option>
+        <option value="lalmonirhat">লালমনিরহাট</option>
+        <option value="dinajpur">দিনাজপুর</option>
+        <option value="rajshahi">রাজশাহী</option>
+        <option value="natore">নাটোর</option>
+        <option value="pabna">পাবনা</option>
+        <option value="sirajganj">সিরাজগঞ্জ</option>
+        <option value="chandpur">চাঁদপুর</option>
+        <option value="lakshmipur">লক্ষ্মীপুর</option>
+        <option value="sandwip">সন্দ্বীপ</option>
+      </select>
+    </div>
+
+    <!-- Sentences -->
+    <div id="sentences" class="sentence-box"></div>
+
+    <!-- Recorder -->
+    <div class="recorder">
+      <p><b>নির্দেশনা:</b> প্রতিটি রেকর্ডে কেবলমাত্র একটি বাক্য পড়ুন।  
+      "রেকর্ড শুরু" চাপুন → একটি বাক্য পড়ুন → তারপর "রেকর্ড শেষ" চাপুন।</p>
+
+      <button id="startBtn">রেকর্ড শুরু</button>
+      <button id="stopBtn" disabled>রেকর্ড শেষ</button>
+      <p id="status">রেকর্ড করার জন্য শুরু চাপুন</p>
+    </div>
+  </div>
+
+  <!-- Floating Recording Box -->
+  <div id="recordingBox" class="recording-box hidden">
+    <div class="dot"></div>
+    <span id="recordingText">রেকর্ড হচ্ছে... একটি মাত্র বাক্য পড়ুন</span>
+  </div>
+
+  <!-- Backend URL for production -->
+  <script>
+    window.APP_CONFIG = { 
+      // For Render deployment - frontend and backend on same server
+      BACKEND_URL: window.location.origin,
+      // For local development
+      // BACKEND_URL: "http://localhost:3000"
+    };
+  </script>
+
+  <!-- Frontend Logic -->
+  <script src="js/app.js"></script>
+</body>
+</html>
