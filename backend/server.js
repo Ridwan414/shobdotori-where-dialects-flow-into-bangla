@@ -49,13 +49,52 @@ const upload = multer({
   limits: { fileSize: parseInt(process.env.MAX_FILE_SIZE) || 10 * 1024 * 1024 }
 });
 
+// Dialect to folder name mapping
+const dialectToFolder = {
+  'dhaka': 'Dhaka',
+  'chittagong': 'Chittagong',
+  'rajshahi': 'Rajshahi',
+  'khulna': 'Khulna',
+  'barisal': 'Barisal',
+  'sylhet': 'Sylhet',
+  'rangpur': 'Rangpur',
+  'mymensingh': 'Mymensingh',
+  'noakhali': 'Noakhali',
+  'comilla': 'Comilla',
+  'feni': 'Feni',
+  'brahmanbaria': 'Brahmanbaria',
+  'sandwip': 'Sandwip',
+  'chandpur': 'Chandpur',
+  'lakshmipur': 'Lakshmipur',
+  'bhola': 'Bhola',
+  'patuakhali': 'Patuakhali',
+  'bagerhat': 'Bagerhat',
+  'jessore': 'Jessore',
+  'kushtia': 'Kushtia',
+  'jhenaidah': 'Jhenaidah',
+  'gaibandha': 'Gaibandha',
+  'kurigram': 'Kurigram',
+  'panchagarh': 'Panchagarh',
+  'lalmonirhat': 'Lalmonirhat',
+  'dinajpur': 'Dinajpur',
+  'natore': 'Natore',
+  'pabna': 'Pabna',
+  'sirajganj': 'Sirajganj',
+  'bogura': 'Bogura'
+};
+
 // Utility Functions
 function sanitizeDialect(dialect) {
   return dialect.toLowerCase().trim().replace(/[^a-z0-9_-]/g, '');
 }
 
+function getFolderName(dialect) {
+  const sanitized = sanitizeDialect(dialect);
+  return dialectToFolder[sanitized] || sanitized.charAt(0).toUpperCase() + sanitized.slice(1);
+}
+
 function generateFilename(dialect, index) {
-  return `${sanitizeDialect(dialect)}_train_${index}.wav`;
+  return `dialect_${sanitizeDialect(dialect)}_${index}.wav`;
 }
 
 async function convertToWav(inputBuffer) {
@@ -87,16 +126,56 @@ async function convertToWav(inputBuffer) {
   });
 }
 
+async function getOrCreateDialectFolder(dialect) {
+  const folderName = getFolderName(dialect);
+  
+  try {
+    // First, check if folder already exists
+    const response = await drive.files.list({
+      q: `name='${folderName}' and parents in '${process.env.GOOGLE_DRIVE_FOLDER_ID}' and mimeType='application/vnd.google-apps.folder'`,
+      fields: 'files(id, name)'
+    });
+    
+    if (response.data.files && response.data.files.length > 0) {
+      console.log(`Found existing folder: ${folderName} (ID: ${response.data.files[0].id})`);
+      return response.data.files[0].id;
+    }
+    
+    // Create new folder if it doesn't exist
+    console.log(`Creating new folder: ${folderName}`);
+    const folderMetadata = {
+      name: folderName,
+      mimeType: 'application/vnd.google-apps.folder',
+      parents: [process.env.GOOGLE_DRIVE_FOLDER_ID]
+    };
+    
+    const folder = await drive.files.create({
+      resource: folderMetadata,
+      fields: 'id, name'
+    });
+    
+    console.log(`Created folder: ${folderName} (ID: ${folder.data.id})`);
+    return folder.data.id;
+    
+  } catch (error) {
+    console.error(`Error getting/creating folder for ${dialect}:`, error);
+    throw error;
+  }
+}
+
 async function getNextIndex(dialect) {
   try {
+    const folderId = await getOrCreateDialectFolder(dialect);
+    const sanitizedDialect = sanitizeDialect(dialect);
+    
     const response = await drive.files.list({
-      q: `name contains '${sanitizeDialect(dialect)}_train_' and parents in '${process.env.GOOGLE_DRIVE_FOLDER_ID}'`,
+      q: `name contains 'dialect_${sanitizedDialect}_' and parents in '${folderId}'`,
       fields: 'files(name)'
     });
     
     const files = response.data.files || [];
     const indices = files.map(file => {
-      const match = file.name.match(/_train_(\d+)\.wav$/);
+      const match = file.name.match(/dialect_\w+_(\d+)\.wav$/);
       return match ? parseInt(match[1]) : -1;
     }).filter(index => index >= 0);
     
@@ -111,9 +190,12 @@ async function uploadToGoogleDrive(buffer, filename, dialect) {
   try {
     console.log(`Starting upload for ${filename}...`);
     
+    // Get or create the dialect folder
+    const folderId = await getOrCreateDialectFolder(dialect);
+    
     const fileMetadata = {
       name: filename,
-      parents: [process.env.GOOGLE_DRIVE_FOLDER_ID]
+      parents: [folderId]
     };
     
     const media = {
@@ -121,7 +203,7 @@ async function uploadToGoogleDrive(buffer, filename, dialect) {
       body: require('stream').Readable.from(buffer)
     };
     
-    console.log(`Uploading ${filename} to Google Drive...`);
+    console.log(`Uploading ${filename} to Google Drive folder...`);
     
     // Add timeout to prevent hanging
     const uploadPromise = drive.files.create({
@@ -264,6 +346,7 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
       dialect: sanitizeDialect(dialect),
       index: fileIndex,
       filename: finalFilename,
+      folder: getFolderName(dialect),
       googleDriveId: driveFile.id,
       googleDriveLink: driveFile.webViewLink,
       fileSize: parseInt(driveFile.size),
@@ -287,30 +370,60 @@ app.get('/api/files', async (req, res) => {
   try {
     const { dialect } = req.query;
     
-    let query = `parents in '${process.env.GOOGLE_DRIVE_FOLDER_ID}'`;
     if (dialect) {
-      query += ` and name contains '${sanitizeDialect(dialect)}_train_'`;
+      // Get files from specific dialect folder
+      const folderId = await getOrCreateDialectFolder(dialect);
+      const response = await drive.files.list({
+        q: `parents in '${folderId}'`,
+        fields: 'files(id, name, size, createdTime, webViewLink)',
+        orderBy: 'name'
+      });
+      
+      const files = response.data.files || [];
+      
+      res.json({
+        success: true,
+        dialect: sanitizeDialect(dialect),
+        folder: getFolderName(dialect),
+        files: files.map(file => ({
+          id: file.id,
+          name: file.name,
+          size: parseInt(file.size),
+          createdAt: file.createdTime,
+          downloadLink: file.webViewLink
+        })),
+        total: files.length
+      });
+    } else {
+      // Get all folders and their file counts
+      const response = await drive.files.list({
+        q: `parents in '${process.env.GOOGLE_DRIVE_FOLDER_ID}' and mimeType='application/vnd.google-apps.folder'`,
+        fields: 'files(id, name)',
+        orderBy: 'name'
+      });
+      
+      const folders = response.data.files || [];
+      const folderStats = [];
+      
+      for (const folder of folders) {
+        const filesResponse = await drive.files.list({
+          q: `parents in '${folder.id}'`,
+          fields: 'files(id)'
+        });
+        
+        folderStats.push({
+          id: folder.id,
+          name: folder.name,
+          fileCount: filesResponse.data.files?.length || 0
+        });
+      }
+      
+      res.json({
+        success: true,
+        folders: folderStats,
+        total: folderStats.length
+      });
     }
-    
-    const response = await drive.files.list({
-      q: query,
-      fields: 'files(id, name, size, createdTime, webViewLink)',
-      orderBy: 'name'
-    });
-    
-    const files = response.data.files || [];
-    
-    res.json({
-      success: true,
-      files: files.map(file => ({
-        id: file.id,
-        name: file.name,
-        size: parseInt(file.size),
-        createdAt: file.createdTime,
-        downloadLink: file.webViewLink
-      })),
-      total: files.length
-    });
     
   } catch (error) {
     res.status(500).json({
