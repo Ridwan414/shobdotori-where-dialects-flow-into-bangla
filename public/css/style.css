@@ -176,7 +176,7 @@ button:active {
   text-align: center;
   padding: 10px;
   font-size: 16px;
-  position: fixed; /* Floating footer */
+  position: relative; /* Floating footer */
   bottom: -20px; /* Increased distance from the bottom */
   left: 50%;
   transform: translateX(-50%); /* Center align */
