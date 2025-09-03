@@ -55,7 +55,7 @@ function sanitizeDialect(dialect) {
 }
 
 function generateFilename(dialect, index) {
-  return `${sanitizeDialect(dialect)}_train_${index}.wav`;
+  return `${sanitizeDialect(dialect)}_${index}.wav`;
 }
 
 async function convertToWav(inputBuffer) {
@@ -90,16 +90,16 @@ async function convertToWav(inputBuffer) {
 async function getNextIndex(dialect) {
   try {
     const response = await drive.files.list({
-      q: `name contains '${sanitizeDialect(dialect)}_train_' and parents in '${process.env.GOOGLE_DRIVE_FOLDER_ID}'`,
+      q: `name contains '${sanitizeDialect(dialect)}_' and parents in '${process.env.GOOGLE_DRIVE_FOLDER_ID}'`,
       fields: 'files(name)'
     });
-    
+
     const files = response.data.files || [];
     const indices = files.map(file => {
-      const match = file.name.match(/_train_(\d+)\.wav$/);
+      const match = file.name.match(/_(\d+)\.wav$/);
       return match ? parseInt(match[1]) : -1;
     }).filter(index => index >= 0);
-    
+
     return indices.length > 0 ? Math.max(...indices) + 1 : 0;
   } catch (error) {
     console.error('Error getting next index:', error);
