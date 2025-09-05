@@ -810,6 +810,8 @@ app.use((err, req, res, next) => {
 // Start server
 const server = app.listen(PORT, () => {
   console.log(`🚀 Shobdotori Backend running on port ${PORT}`);
+  console.log(`📁 Google Drive Folder ID: ${process.env.GOOGLE_DRIVE_FOLDER_ID || 'Not configured'}`);
+  console.log(`🗄️  MongoDB URI: ${process.env.MONGODB_URI || 'mongodb://localhost:27017/shobdotori'}`);
   console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`⏰ Server started at: ${new Date().toISOString()}`);
   console.log(`🔗 API endpoints available at: http://localhost:${PORT}/api/*`);
