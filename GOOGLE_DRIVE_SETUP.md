@@ -168,12 +168,18 @@ curl "https://your-render-app.onrender.com/api/files"
 Your files will be automatically organized as:
 ```
 Shobdotori Audio Files/
-├── dhaka_train_0.wav
-├── dhaka_train_1.wav
-├── chittagong_train_0.wav
-├── chittagong_train_1.wav
-├── mymensingh_train_0.wav
-└── ... (all other dialect files)
+├── Dhaka/
+│   ├── dhaka_1.wav
+│   ├── dhaka_2.wav
+│   └── ...
+├── Chittagong/
+│   ├── chittagong_1.wav
+│   ├── chittagong_2.wav
+│   └── ...
+├── Mymensingh/
+│   ├── mymensingh_1.wav
+│   └── ...
+└── ... (all other dialect folders)
 ```
 
 Each file is properly labeled with:

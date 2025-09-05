@@ -15,7 +15,7 @@ const Recording = require('./models/Recording');
 
 // Utilities
 const {
-  getRandomUnrecordedSentence,
+  getNextSequentialUnrecordedSentence,
   updateDialectAfterRecording,
   isSentenceRecorded,
   getDialectProgress
@@ -111,7 +111,8 @@ function getFolderName(dialect) {
 }
 
 function generateFilename(dialect, index) {
-  return `dialect_${sanitizeDialect(dialect)}_${index}.wav`;
+  // Use 1-based indexing and format: dialectname_index.wav (e.g., dhaka_1.wav)
+  return `${sanitizeDialect(dialect)}_${index}.wav`;
 }
 
 async function convertToWav(inputBuffer) {
@@ -318,7 +319,7 @@ app.get('/api/next-index', async (req, res) => {
 app.get('/api/dialects', async (req, res) => {
   try {
     const dialects = await Dialect.find({})
-      .select('dialectCode dialectName status recordedSentenceIds')
+      .select('dialectCode dialectName label status recordedSentenceIds unrecordedSentenceIds')
       .sort({ dialectCode: 1 });
 
     res.json({
@@ -326,6 +327,7 @@ app.get('/api/dialects', async (req, res) => {
       dialects: dialects.map(d => ({
         code: d.dialectCode,
         name: d.dialectName,
+        label: d.label,
         status: d.status,
         recorded: d.recordedSentences,
         total: d.totalSentences,
@@ -379,8 +381,8 @@ app.get('/api/next-sentence', async (req, res) => {
       });
     }
     
-    // Get random unrecorded sentence
-    const sentence = await getRandomUnrecordedSentence(dialect.toLowerCase());
+    // Get sequential unrecorded sentence
+    const sentence = await getNextSequentialUnrecordedSentence(dialect.toLowerCase());
     
     if (!sentence) {
       return res.json({
@@ -507,7 +509,7 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
     await updateDialectAfterRecording(dialectDoc._id, parseInt(sentence_id), recording._id);
     
     console.log(`✅ Recording saved successfully: ${finalFilename}`);
-    console.log(`📊 Progress: ${dialectDoc.dialectCode} - ${dialectDoc.recordedSentences + 1}/400`);
+    console.log(`📊 Progress: ${dialectDoc.dialectCode} - ${dialectDoc.recordedSentences + 1}/${dialectDoc.totalSentences}`);
     
     res.json({
       success: true,
@@ -578,6 +580,7 @@ app.get('/api/progress', async (req, res) => {
       
       const totalRecordings = dialects.reduce((sum, d) => sum + d.recordedSentences, 0);
       const completedDialects = dialects.filter(d => d.status === 'completed').length;
+      const maxPossibleRecordings = dialects.reduce((sum, d) => sum + d.totalSentences, 0);
       
       res.json({
         success: true,
@@ -586,8 +589,8 @@ app.get('/api/progress', async (req, res) => {
           completedDialects,
           inProgressDialects: dialects.length - completedDialects,
           totalRecordings,
-          maxPossibleRecordings: 12000,
-          overallProgress: ((totalRecordings / 12000) * 100).toFixed(2)
+          maxPossibleRecordings,
+          overallProgress: maxPossibleRecordings > 0 ? ((totalRecordings / maxPossibleRecordings) * 100).toFixed(2) : '0.00'
         },
         dialects: dialects.map(d => ({
           code: d.dialectCode,
@@ -713,12 +716,16 @@ app.get('/api/stats', async (req, res) => {
       }
     ]);
     
+    // Calculate dynamic max possible recordings
+    const allDialects = await Dialect.find({});
+    const maxPossible = allDialects.reduce((sum, d) => sum + d.totalSentences, 0);
+    
     res.json({
       success: true,
       overall: totalStats[0] || { totalRecordings: 0 },
       byDialect: stats,
-      maxPossible: 12000,
-      completionRate: totalStats[0] ? ((totalStats[0].totalRecordings / 12000) * 100).toFixed(2) : 0
+      maxPossible,
+      completionRate: totalStats[0] && maxPossible > 0 ? ((totalStats[0].totalRecordings / maxPossible) * 100).toFixed(2) : 0
     });
   } catch (error) {
     res.status(500).json({

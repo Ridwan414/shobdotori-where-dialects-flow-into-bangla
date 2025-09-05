@@ -31,18 +31,44 @@ async function loadDialects(showLoading = false) {
     defaultOption.textContent = '-- উপভাষা নির্বাচন করুন --';
     dialectSelect.appendChild(defaultOption);
     
-    // Add dialects to dropdown
-    data.dialects.forEach(dialect => {
-      const option = document.createElement('option');
-      option.value = dialect.code;
-      option.textContent = `${dialect.name} (${dialect.recorded}/${dialect.total} - ${dialect.percentage}%)`;
-      
-      // Restore previous selection if it exists
-      if (dialect.code === currentValue) {
-        option.selected = true;
+    // Group dialects by label (division/region)
+    const groupedDialects = data.dialects.reduce((groups, dialect) => {
+      const label = dialect.label || 'other';
+      if (!groups[label]) {
+        groups[label] = [];
       }
+      groups[label].push(dialect);
+      return groups;
+    }, {});
+    
+    // Sort groups: divisions first, then regions
+    const groupOrder = ['devision', 'region'];
+    const sortedGroups = groupOrder.filter(group => groupedDialects[group]);
+    
+    // Add grouped dialects to dropdown
+    sortedGroups.forEach(groupLabel => {
+      const dialects = groupedDialects[groupLabel];
       
-      dialectSelect.appendChild(option);
+      // Create optgroup
+      const optgroup = document.createElement('optgroup');
+      const groupTitle = groupLabel === 'devision' ? 'বিভাগসমূহ' : 'অঞ্চলসমূহ';
+      optgroup.label = groupTitle;
+      
+      // Add dialects to optgroup
+      dialects.forEach(dialect => {
+        const option = document.createElement('option');
+        option.value = dialect.code;
+        option.textContent = `${dialect.name} (${dialect.recorded}/${dialect.total} - ${dialect.percentage}%)`;
+        
+        // Restore previous selection if it exists
+        if (dialect.code === currentValue) {
+          option.selected = true;
+        }
+        
+        optgroup.appendChild(option);
+      });
+      
+      dialectSelect.appendChild(optgroup);
     });
     
     console.log(`✅ Loaded ${data.dialects.length} dialects from database${showLoading ? ' (refreshed)' : ''}`);

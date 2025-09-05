@@ -5,8 +5,7 @@ const sentenceSchema = new mongoose.Schema({
     type: Number, 
     required: true, 
     unique: true,
-    min: 1,
-    max: 400
+    min: 1
   },
   text: { 
     type: String, 

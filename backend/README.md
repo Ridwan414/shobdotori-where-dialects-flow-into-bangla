@@ -55,11 +55,11 @@ npm run dev
 
 ## File Naming Convention
 
-Files are automatically named: `dialect_train_index.wav`
+Files are automatically named: `dialectname_index.wav`
 
 Examples:
-- `dhaka_train_0.wav`
-- `chittagong_train_1.wav`
-- `mymensingh_train_2.wav`
+- `dhaka_1.wav`
+- `chittagong_1.wav`
+- `mymensingh_1.wav`
 
 All files are stored in your specified Google Drive folder with proper labeling.

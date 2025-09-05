@@ -10,3 +10,4 @@
 
 # Ignore audio folder for upload
 /audio
+service-account-key.json

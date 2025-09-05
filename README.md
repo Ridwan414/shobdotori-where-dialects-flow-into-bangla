@@ -41,13 +41,13 @@ Follow the detailed guide in `GOOGLE_DRIVE_SETUP.md`
 
 Audio files are automatically organized in Google Drive:
 ```
-dialect_train_index.wav
+dialectname_index.wav
 ```
 
 Examples:
-- `dhaka_train_0.wav`
-- `chittagong_train_1.wav`  
-- `mymensingh_train_2.wav`
+- `dhaka_1.wav`
+- `chittagong_1.wav`  
+- `mymensingh_1.wav`
 
 ## Project Structure
 

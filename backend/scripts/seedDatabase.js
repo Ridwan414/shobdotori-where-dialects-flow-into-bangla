@@ -39,14 +39,15 @@ async function seedDialects() {
     const allSentences = await Sentence.find({}).select('sentenceId');
     const allSentenceIds = allSentences.map(s => s.sentenceId).sort((a, b) => a - b);
     
-    if (allSentenceIds.length !== 400) {
-      throw new Error(`Expected 400 sentences, found ${allSentenceIds.length}`);
-    }
+    // if (allSentenceIds.length !== 400) {
+    //   throw new Error(`Expected 400 sentences, found ${allSentenceIds.length}`);
+    // }
 
     // Create dialect documents
     const dialectDocs = dialectsData.map(dialect => ({
       dialectCode: dialect.code,
       dialectName: dialect.name,
+      label: dialect.label,
       status: 'in_progress',
       recordedSentenceIds: [],
       unrecordedSentenceIds: [...allSentenceIds], // Start with all sentences unrecorded

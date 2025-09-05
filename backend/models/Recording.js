@@ -19,9 +19,8 @@ const recordingSchema = new mongoose.Schema({
   recordingIndex: { 
     type: Number, 
     required: true,
-    min: 0,
-    max: 399
-  }, // Sequential per dialect (0-399)
+    min: 1
+  }, // Sequential per dialect (starts from 1)
   filename: { 
     type: String, 
     required: true,

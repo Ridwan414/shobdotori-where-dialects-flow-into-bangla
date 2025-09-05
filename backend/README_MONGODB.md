@@ -96,7 +96,7 @@ npm start
   sentenceId: ObjectId("..."), // Reference to sentence  
   sentenceText: "আজ সকালে আমি বাজারে গিয়েছিলাম।", // Denormalized
   recordingIndex: 0, // Sequential per dialect (0-399)
-  filename: "dhaka_train_0.wav",
+  filename: "dhaka_1.wav",
   googleDriveId: "1a2b3c4d5e6f7g8h9i0j",
   googleDriveLink: "https://drive.google.com/file/d/...",
   recordedAt: Date

@@ -18,13 +18,11 @@ async function initializeDialect(dialectCode, dialectName) {
       return existingDialect;
     }
 
-    // Get all sentence IDs (1-400)
+    // Get all sentence IDs (dynamic count)
     const allSentences = await Sentence.find({}).select('sentenceId');
     const allSentenceIds = allSentences.map(s => s.sentenceId).sort((a, b) => a - b);
     
-    if (allSentenceIds.length !== 400) {
-      throw new Error(`Expected 400 sentences, found ${allSentenceIds.length}`);
-    }
+    console.log(`📊 Found ${allSentenceIds.length} sentences for dialect initialization`);
 
     const dialect = new Dialect({
       dialectCode,
@@ -83,13 +81,14 @@ async function updateDialectAfterRecording(dialectId, sentenceNumericId, recordi
     // Update status and timestamp
     dialect.lastRecordedAt = new Date();
     
-    // Check if completed
-    if (dialect.recordedSentenceIds.length >= 400) {
+    // Check if completed (when all sentences are recorded)
+    if (dialect.unrecordedSentenceIds.length === 0) {
       dialect.status = 'completed';
     }
 
     await dialect.save();
-    console.log(`✅ Updated dialect ${dialect.dialectCode}: ${dialect.recordedSentenceIds.length}/400 sentences recorded`);
+    const totalSentences = dialect.recordedSentenceIds.length + dialect.unrecordedSentenceIds.length;
+    console.log(`✅ Updated dialect ${dialect.dialectCode}: ${dialect.recordedSentenceIds.length}/${totalSentences} sentences recorded`);
     
     return dialect;
   } catch (error) {
@@ -98,8 +97,8 @@ async function updateDialectAfterRecording(dialectId, sentenceNumericId, recordi
   }
 }
 
-// Get random unrecorded sentence for a dialect
-async function getRandomUnrecordedSentence(dialectCode) {
+// Get next sequential unrecorded sentence for a dialect
+async function getNextSequentialUnrecordedSentence(dialectCode) {
   try {
     const dialect = await Dialect.findOne({ dialectCode });
     
@@ -111,16 +110,15 @@ async function getRandomUnrecordedSentence(dialectCode) {
       return null; // All sentences recorded
     }
 
-    // Get random unrecorded sentence ID
-    const randomIndex = Math.floor(Math.random() * dialect.unrecordedSentenceIds.length);
-    const sentenceNumericId = dialect.unrecordedSentenceIds[randomIndex];
+    // Get the smallest unrecorded sentence ID (sequential order)
+    const nextSentenceId = Math.min(...dialect.unrecordedSentenceIds);
     
     // Get the sentence document
-    const sentence = await Sentence.findOne({ sentenceId: sentenceNumericId });
+    const sentence = await Sentence.findOne({ sentenceId: nextSentenceId });
     
     return sentence;
   } catch (error) {
-    console.error('❌ Error getting random unrecorded sentence:', error.message);
+    console.error('❌ Error getting next sequential unrecorded sentence:', error.message);
     throw error;
   }
 }
@@ -164,7 +162,7 @@ module.exports = {
   initializeDialect,
   initializeAllDialects,
   updateDialectAfterRecording,
-  getRandomUnrecordedSentence,
+  getNextSequentialUnrecordedSentence,
   isSentenceRecorded,
   getDialectProgress
 }; 

@@ -13,6 +13,11 @@ const dialectSchema = new mongoose.Schema({
     required: true,
     trim: true
   },
+  label: {
+    type: String,
+    required: true,
+    trim: true
+  },
   status: { 
     type: String, 
     enum: ['in_progress', 'completed'], 
@@ -25,13 +30,11 @@ const dialectSchema = new mongoose.Schema({
   // Embedded arrays for easy querying
   recordedSentenceIds: [{
     type: Number,
-    min: 1,
-    max: 400
+    min: 1
   }],
   unrecordedSentenceIds: [{
     type: Number,
-    min: 1,
-    max: 400
+    min: 1
   }],
   recordingIds: [{
     type: mongoose.Schema.Types.ObjectId,
@@ -44,7 +47,8 @@ const dialectSchema = new mongoose.Schema({
 
 // Virtual properties
 dialectSchema.virtual('totalSentences').get(function() {
-  return 400;
+  // Return the sum of recorded and unrecorded sentences
+  return this.recordedSentenceIds.length + this.unrecordedSentenceIds.length;
 });
 
 dialectSchema.virtual('recordedSentences').get(function() {
@@ -52,11 +56,12 @@ dialectSchema.virtual('recordedSentences').get(function() {
 });
 
 dialectSchema.virtual('completionPercentage').get(function() {
-  return ((this.recordedSentenceIds.length / 400) * 100).toFixed(2);
+  const total = this.totalSentences;
+  return total > 0 ? ((this.recordedSentenceIds.length / total) * 100).toFixed(2) : '0.00';
 });
 
 dialectSchema.virtual('nextIndex').get(function() {
-  return this.recordedSentenceIds.length;
+  return this.recordedSentenceIds.length + 1; // 1-based indexing
 });
 
 // Include virtuals when converting to JSON
