@@ -7,8 +7,25 @@ const fs = require('fs');
 const path = require('path');
 require('dotenv').config();
 
+// Database and Models
+const connectDB = require('./config/database');
+const Sentence = require('./models/Sentence');
+const Dialect = require('./models/Dialect');
+const Recording = require('./models/Recording');
+
+// Utilities
+const {
+  getRandomUnrecordedSentence,
+  updateDialectAfterRecording,
+  isSentenceRecorded,
+  getDialectProgress
+} = require('./utils/dialectHelpers');
+
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Connect to MongoDB
+connectDB();
 
 // CORS Configuration
 const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || ['*'];
@@ -163,29 +180,6 @@ async function getOrCreateDialectFolder(dialect) {
   }
 }
 
-async function getNextIndex(dialect) {
-  try {
-    const folderId = await getOrCreateDialectFolder(dialect);
-    const sanitizedDialect = sanitizeDialect(dialect);
-    
-    const response = await drive.files.list({
-      q: `name contains 'dialect_${sanitizedDialect}_' and parents in '${folderId}'`,
-      fields: 'files(name)'
-    });
-    
-    const files = response.data.files || [];
-    const indices = files.map(file => {
-      const match = file.name.match(/dialect_\w+_(\d+)\.wav$/);
-      return match ? parseInt(match[1]) : -1;
-    }).filter(index => index >= 0);
-    
-    return indices.length > 0 ? Math.max(...indices) + 1 : 0;
-  } catch (error) {
-    console.error('Error getting next index:', error);
-    return 0;
-  }
-}
-
 async function uploadToGoogleDrive(buffer, filename, dialect) {
   try {
     console.log(`Starting upload for ${filename}...`);
@@ -231,15 +225,27 @@ async function uploadToGoogleDrive(buffer, filename, dialect) {
 app.get('/', (req, res) => {
   res.json({
     status: 'ok',
-    message: 'Shobdotori Backend - Google Drive Storage',
-    timestamp: new Date().toISOString()
+    message: 'Shobdotori Backend - MongoDB + Google Drive Storage',
+    timestamp: new Date().toISOString(),
+    features: [
+      '400 Bengali sentences',
+      '30 dialects supported',
+      '12,000 potential recordings',
+      'MongoDB tracking',
+      'Google Drive storage'
+    ]
   });
 });
 
 app.get('/api/ping', async (req, res) => {
   try {
     // Test Google Drive connection
-    const response = await drive.about.get({ fields: 'user' });
+    const driveResponse = await drive.about.get({ fields: 'user' });
+    
+    // Test MongoDB connection
+    const sentenceCount = await Sentence.countDocuments();
+    const dialectCount = await Dialect.countDocuments();
+    const recordingCount = await Recording.countDocuments();
     
     res.json({
       status: 'ok',
@@ -247,19 +253,25 @@ app.get('/api/ping', async (req, res) => {
       services: {
         googleDrive: {
           connected: true,
-          user: response.data.user?.emailAddress || 'Connected'
+          user: driveResponse.data.user?.emailAddress || 'Connected'
+        },
+        mongodb: {
+          connected: true,
+          sentences: sentenceCount,
+          dialects: dialectCount,
+          recordings: recordingCount
         },
         ffmpeg: {
           available: true,
           path: process.env.FFMPEG_PATH || 'ffmpeg'
         }
       },
-      version: '1.0.0'
+      version: '2.0.0'
     });
   } catch (error) {
     res.status(500).json({
       status: 'error',
-      error: 'Google Drive connection failed',
+      error: 'Service connection failed',
       details: error.message
     });
   }
@@ -276,12 +288,22 @@ app.get('/api/next-index', async (req, res) => {
       });
     }
     
-    const nextIndex = await getNextIndex(dialect);
+    const dialectDoc = await Dialect.findOne({ dialectCode: dialect.toLowerCase() });
+    
+    if (!dialectDoc) {
+      return res.status(404).json({
+        success: false,
+        error: 'Dialect not found'
+      });
+    }
     
     res.json({
       success: true,
-      dialect: sanitizeDialect(dialect),
-      next_index: nextIndex
+      dialect: dialectDoc.dialectCode,
+      next_index: dialectDoc.nextIndex,
+      recorded_sentences: dialectDoc.recordedSentences,
+      total_sentences: dialectDoc.totalSentences,
+      completion_percentage: dialectDoc.completionPercentage
     });
   } catch (error) {
     res.status(500).json({
@@ -292,9 +314,114 @@ app.get('/api/next-index', async (req, res) => {
   }
 });
 
+// Get all dialects
+app.get('/api/dialects', async (req, res) => {
+  try {
+    const dialects = await Dialect.find({})
+      .select('dialectCode dialectName status recordedSentenceIds')
+      .sort({ dialectCode: 1 });
+
+    res.json({
+      success: true,
+      dialects: dialects.map(d => ({
+        code: d.dialectCode,
+        name: d.dialectName,
+        status: d.status,
+        recorded: d.recordedSentences,
+        total: d.totalSentences,
+        percentage: d.completionPercentage
+      }))
+    });
+
+  } catch (error) {
+    console.error('❌ Dialects fetch error:', error.message);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch dialects',
+      error: error.message
+    });
+  }
+});
+
+// Get next sentence for recording
+app.get('/api/next-sentence', async (req, res) => {
+  try {
+    const { dialect } = req.query;
+    
+    if (!dialect) {
+      return res.status(400).json({
+        success: false,
+        error: 'Dialect parameter is required'
+      });
+    }
+    
+    const dialectDoc = await Dialect.findOne({ dialectCode: dialect.toLowerCase() });
+    
+    if (!dialectDoc) {
+      return res.status(404).json({
+        success: false,
+        error: 'Dialect not found'
+      });
+    }
+    
+    // Check if completed
+    if (dialectDoc.status === 'completed') {
+      return res.json({
+        success: true,
+        message: 'All sentences recorded for this dialect',
+        sentence: null,
+        progress: {
+          recorded: dialectDoc.recordedSentences,
+          total: dialectDoc.totalSentences,
+          percentage: dialectDoc.completionPercentage,
+          status: 'completed'
+        }
+      });
+    }
+    
+    // Get random unrecorded sentence
+    const sentence = await getRandomUnrecordedSentence(dialect.toLowerCase());
+    
+    if (!sentence) {
+      return res.json({
+        success: true,
+        message: 'All sentences recorded for this dialect',
+        sentence: null,
+        progress: {
+          recorded: dialectDoc.recordedSentences,
+          total: dialectDoc.totalSentences,
+          percentage: dialectDoc.completionPercentage,
+          status: 'completed'
+        }
+      });
+    }
+    
+    res.json({
+      success: true,
+      sentence: {
+        id: sentence.sentenceId,
+        text: sentence.text,
+        _id: sentence._id
+      },
+      progress: {
+        recorded: dialectDoc.recordedSentences,
+        total: dialectDoc.totalSentences,
+        percentage: dialectDoc.completionPercentage,
+        remaining: dialectDoc.unrecordedSentenceIds.length
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get next sentence',
+      details: error.message
+    });
+  }
+});
+
 app.post('/api/upload', upload.single('file'), async (req, res) => {
   try {
-    const { dialect, index, sentence_no } = req.body;
+    const { dialect, index, sentence_id, sentence_text } = req.body;
     
     if (!req.file) {
       return res.status(400).json({
@@ -303,10 +430,36 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
       });
     }
     
-    if (!dialect) {
+    if (!dialect || !sentence_id) {
       return res.status(400).json({
         success: false,
-        error: 'Dialect is required'
+        error: 'Dialect and sentence_id are required'
+      });
+    }
+    
+    // Find dialect and sentence
+    const dialectDoc = await Dialect.findOne({ dialectCode: dialect.toLowerCase() });
+    const sentenceDoc = await Sentence.findOne({ sentenceId: parseInt(sentence_id) });
+    
+    if (!dialectDoc) {
+      return res.status(404).json({
+        success: false,
+        error: 'Dialect not found'
+      });
+    }
+    
+    if (!sentenceDoc) {
+      return res.status(404).json({
+        success: false,
+        error: 'Sentence not found'
+      });
+    }
+    
+    // Check if already recorded
+    if (await isSentenceRecorded(dialect.toLowerCase(), parseInt(sentence_id))) {
+      return res.status(400).json({
+        success: false,
+        error: 'This sentence is already recorded for this dialect'
       });
     }
     
@@ -322,8 +475,8 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
       });
     }
     
-    // Get next index if not provided
-    const fileIndex = index ? parseInt(index) : await getNextIndex(dialect);
+    // Use provided index or get next index
+    const fileIndex = index ? parseInt(index) : dialectDoc.nextIndex;
     const finalFilename = generateFilename(dialect, fileIndex);
     
     // Convert to WAV if needed
@@ -334,33 +487,243 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
     }
     
     // Upload to Google Drive
-    console.log(` Starting Google Drive upload for ${finalFilename}...`);
+    console.log(`📤 Starting Google Drive upload for ${finalFilename}...`);
     const driveFile = await uploadToGoogleDrive(audioBuffer, finalFilename, dialect);
     
-    console.log(` Upload process completed successfully for ${finalFilename}`);
-    console.log(` File stored in Google Drive with ID: ${driveFile.id}`);
+    // Create recording in database
+    const recording = new Recording({
+      dialectId: dialectDoc._id,
+      sentenceId: sentenceDoc._id,
+      sentenceText: sentence_text || sentenceDoc.text,
+      recordingIndex: fileIndex,
+      filename: finalFilename,
+      googleDriveId: driveFile.id,
+      googleDriveLink: driveFile.webViewLink
+    });
+    
+    await recording.save();
+    
+    // Update dialect progress
+    await updateDialectAfterRecording(dialectDoc._id, parseInt(sentence_id), recording._id);
+    
+    console.log(`✅ Recording saved successfully: ${finalFilename}`);
+    console.log(`📊 Progress: ${dialectDoc.dialectCode} - ${dialectDoc.recordedSentences + 1}/400`);
     
     res.json({
       success: true,
-      status: 'ok',
-      dialect: sanitizeDialect(dialect),
-      index: fileIndex,
-      filename: finalFilename,
-      folder: getFolderName(dialect),
-      googleDriveId: driveFile.id,
-      googleDriveLink: driveFile.webViewLink,
-      fileSize: parseInt(driveFile.size),
-      message: 'File uploaded successfully to Google Drive'
+      recording: {
+        id: recording._id,
+        filename: recording.filename,
+        dialectCode: dialectDoc.dialectCode,
+        sentenceId: parseInt(sentence_id),
+        recordingIndex: fileIndex
+      },
+      googleDrive: {
+        id: driveFile.id,
+        link: driveFile.webViewLink,
+        size: parseInt(driveFile.size)
+      },
+      message: 'Recording uploaded and saved successfully'
     });
     
   } catch (error) {
-    console.error(' Upload error:', error.message);
-    console.error(' Error details:', error);
+    console.error('❌ Upload error:', error.message);
     
-    // Send error response
     res.status(500).json({
       success: false,
       error: 'Upload failed',
+      details: error.message
+    });
+  }
+});
+
+// Get dialect progress
+app.get('/api/progress', async (req, res) => {
+  try {
+    const { dialect } = req.query;
+    
+    if (dialect) {
+      // Get specific dialect progress
+      const dialectDoc = await Dialect.findOne({ dialectCode: dialect.toLowerCase() })
+        .populate({
+          path: 'recordingIds',
+          select: 'filename recordedAt sentenceText',
+          options: { sort: { recordedAt: -1 }, limit: 10 }
+        });
+      
+      if (!dialectDoc) {
+        return res.status(404).json({
+          success: false,
+          error: 'Dialect not found'
+        });
+      }
+      
+      res.json({
+        success: true,
+        dialect: {
+          code: dialectDoc.dialectCode,
+          name: dialectDoc.dialectName,
+          status: dialectDoc.status,
+          totalSentences: dialectDoc.totalSentences,
+          recordedSentences: dialectDoc.recordedSentences,
+          completionPercentage: dialectDoc.completionPercentage,
+          lastRecordedAt: dialectDoc.lastRecordedAt,
+          remainingSentences: dialectDoc.unrecordedSentenceIds.length
+        },
+        recentRecordings: dialectDoc.recordingIds
+      });
+    } else {
+      // Get all dialects progress
+      const dialects = await Dialect.find({}).sort({ dialectCode: 1 });
+      
+      const totalRecordings = dialects.reduce((sum, d) => sum + d.recordedSentences, 0);
+      const completedDialects = dialects.filter(d => d.status === 'completed').length;
+      
+      res.json({
+        success: true,
+        summary: {
+          totalDialects: dialects.length,
+          completedDialects,
+          inProgressDialects: dialects.length - completedDialects,
+          totalRecordings,
+          maxPossibleRecordings: 12000,
+          overallProgress: ((totalRecordings / 12000) * 100).toFixed(2)
+        },
+        dialects: dialects.map(d => ({
+          code: d.dialectCode,
+          name: d.dialectName,
+          status: d.status,
+          recordedSentences: d.recordedSentences,
+          totalSentences: d.totalSentences,
+          completionPercentage: d.completionPercentage,
+          lastRecordedAt: d.lastRecordedAt
+        }))
+      });
+    }
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get progress',
+      details: error.message
+    });
+  }
+});
+
+// Get recordings for a dialect
+app.get('/api/recordings', async (req, res) => {
+  try {
+    const { dialect, page = 1, limit = 20 } = req.query;
+    
+    if (!dialect) {
+      return res.status(400).json({
+        success: false,
+        error: 'Dialect parameter is required'
+      });
+    }
+    
+    const dialectDoc = await Dialect.findOne({ dialectCode: dialect.toLowerCase() });
+    
+    if (!dialectDoc) {
+      return res.status(404).json({
+        success: false,
+        error: 'Dialect not found'
+      });
+    }
+    
+    // Get recordings with pagination
+    const recordings = await Recording.find({ dialectId: dialectDoc._id })
+      .populate('sentenceId', 'sentenceId text')
+      .sort({ recordedAt: -1 })
+      .limit(limit * 1)
+      .skip((page - 1) * limit);
+    
+    const total = await Recording.countDocuments({ dialectId: dialectDoc._id });
+    
+    res.json({
+      success: true,
+      dialect: {
+        code: dialectDoc.dialectCode,
+        name: dialectDoc.dialectName
+      },
+      recordings: recordings.map(r => ({
+        id: r._id,
+        filename: r.filename,
+        sentence: {
+          id: r.sentenceId.sentenceId,
+          text: r.sentenceText
+        },
+        recordingIndex: r.recordingIndex,
+        googleDriveId: r.googleDriveId,
+        googleDriveLink: r.googleDriveLink,
+        recordedAt: r.recordedAt
+      })),
+      pagination: {
+        current: parseInt(page),
+        pages: Math.ceil(total / limit),
+        total,
+        hasNext: page * limit < total,
+        hasPrev: page > 1
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get recordings',
+      details: error.message
+    });
+  }
+});
+
+// Get database statistics
+app.get('/api/stats', async (req, res) => {
+  try {
+    const stats = await Recording.aggregate([
+      {
+        $lookup: {
+          from: 'dialects',
+          localField: 'dialectId',
+          foreignField: '_id',
+          as: 'dialect'
+        }
+      },
+      {
+        $unwind: '$dialect'
+      },
+      {
+        $group: {
+          _id: '$dialect.dialectCode',
+          dialectName: { $first: '$dialect.dialectName' },
+          recordingCount: { $sum: 1 },
+          latestRecording: { $max: '$recordedAt' }
+        }
+      },
+      {
+        $sort: { recordingCount: -1 }
+      }
+    ]);
+    
+    const totalStats = await Recording.aggregate([
+      {
+        $group: {
+          _id: null,
+          totalRecordings: { $sum: 1 },
+          earliestRecording: { $min: '$recordedAt' },
+          latestRecording: { $max: '$recordedAt' }
+        }
+      }
+    ]);
+    
+    res.json({
+      success: true,
+      overall: totalStats[0] || { totalRecordings: 0 },
+      byDialect: stats,
+      maxPossible: 12000,
+      completionRate: totalStats[0] ? ((totalStats[0].totalRecordings / 12000) * 100).toFixed(2) : 0
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Failed to get statistics',
       details: error.message
     });
   }
@@ -446,12 +809,11 @@ app.use((err, req, res, next) => {
 
 // Start server
 const server = app.listen(PORT, () => {
-  console.log(` Shobdotori Backend running on port ${PORT}`);
-  console.log(` Google Drive Folder ID: ${process.env.GOOGLE_DRIVE_FOLDER_ID}`);
-  console.log(` Environment: ${process.env.NODE_ENV}`);
-  console.log(` Server started at: ${new Date().toISOString()}`);
-  console.log(` API endpoints available at: http://localhost:${PORT}/api/*`);
-  console.log(` Frontend available at: http://localhost:${PORT}/`);
+  console.log(`🚀 Shobdotori Backend running on port ${PORT}`);
+  console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`⏰ Server started at: ${new Date().toISOString()}`);
+  console.log(`🔗 API endpoints available at: http://localhost:${PORT}/api/*`);
+  console.log(`🎯 Frontend available at: http://localhost:${PORT}/`);
 });
 
 // Graceful shutdown handling

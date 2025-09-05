@@ -1,13 +1,17 @@
 {
   "name": "shobdotori-backend",
   "version": "1.0.0",
-  "description": "Minimalistic backend for Shobdotori - Google Drive storage",
+  "description": "Minimalistic backend for Shobdotori - Google Drive storage with MongoDB",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
     "build": "echo 'No build step required'",
-    "render-start": "cd .. && node backend/server.js"
+    "render-start": "cd .. && node backend/server.js",
+    "seed": "node scripts/seedDatabase.js",
+    "clean": "node scripts/cleanDatabase.js",
+    "clean:recordings": "node scripts/cleanDatabase.js recordings",
+    "reset": "npm run clean && npm run seed"
   },
   "dependencies": {
     "express": "^4.18.2",
@@ -15,7 +19,8 @@
     "multer": "^1.4.5-lts.1",
     "googleapis": "^128.0.0",
     "fluent-ffmpeg": "^2.1.2",
-    "dotenv": "^16.3.1"
+    "dotenv": "^16.3.1",
+    "mongoose": "^8.0.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.2"
