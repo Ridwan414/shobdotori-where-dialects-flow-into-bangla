@@ -26,9 +26,12 @@
     <!-- Dropdown -->
     <div class="dropdown">
       <label for="dialect">উপভাষা নির্বাচন করুন:</label>
-      <select id="dialect">
-        <option value="">-- Loading dialects... --</option>
-      </select>
+      <div style="display: flex; gap: 10px; align-items: center; justify-content: center; flex-wrap: wrap;">
+        <select id="dialect">
+          <option value="">-- Loading dialects... --</option>
+        </select>
+        <button id="refreshDialects" type="button" title="Refresh dialect progress">🔄</button>
+      </div>
     </div>
 
     <!-- Sentence Box -->

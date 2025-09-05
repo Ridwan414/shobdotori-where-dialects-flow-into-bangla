@@ -40,17 +40,67 @@ body {
 }
 
 select {
-  padding: 10px;
+  padding: 12px 15px;
   border-radius: 8px;
   border: none;
   font-size: 16px;
   outline: none;
+  min-width: 300px;
+  width: 100%;
+  max-width: 500px;
+  background: white;
+  color: #333;
   transition: box-shadow 0.3s ease, transform 0.2s ease;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
 }
 
 select:hover {
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-  transform: scale(1.05);
+  transform: scale(1.02);
+}
+
+select:focus {
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.3);
+  transform: scale(1.02);
+}
+
+select:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+select option {
+  padding: 8px;
+  background: white;
+  color: #333;
+}
+
+#refreshDialects {
+  min-width: 40px;
+  width: 40px;
+  height: 40px;
+  padding: 8px;
+  background: #17a2b8;
+  border-radius: 50%;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+}
+
+#refreshDialects:hover {
+  background: #138496;
+}
+
+#refreshDialects:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+  transform: none;
 }
 
 /* ===== Sentences box ===== */
@@ -112,9 +162,57 @@ button:active {
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
 }
 
+button:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+  opacity: 0.6;
+  transform: none;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+button:disabled:hover {
+  background: #6c757d;
+  transform: none;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}
+
+.uploading {
+  position: relative;
+  pointer-events: none;
+}
+
+.uploading::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 16px;
+  height: 16px;
+  border: 2px solid transparent;
+  border-top: 2px solid white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: translate(-50%, -50%) rotate(0deg); }
+  100% { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
 #status {
   margin-top: 15px;
   font-style: italic;
+  min-height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+#status.uploading {
+  color: #ffc107;
+  font-weight: bold;
 }
 
 /* ===== Floating recording badge ===== */
