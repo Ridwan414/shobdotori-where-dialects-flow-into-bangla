@@ -144,10 +144,54 @@ async function convertToWav(inputBuffer) {
   });
 }
 
+// Debug function for Google Drive setup
+async function debugGoogleDriveSetup() {
+  try {
+    console.log('🔍 Debugging Google Drive Setup...');
+    console.log(`📁 Google Drive Folder ID: ${process.env.GOOGLE_DRIVE_FOLDER_ID || 'Not configured'}`);
+    
+    if (!process.env.GOOGLE_DRIVE_FOLDER_ID) {
+      console.error('❌ GOOGLE_DRIVE_FOLDER_ID is not set!');
+      return false;
+    }
+    
+    // Test if the parent folder exists and is accessible
+    const parentFolder = await drive.files.get({
+      fileId: process.env.GOOGLE_DRIVE_FOLDER_ID,
+      fields: 'id, name, mimeType'
+    });
+    
+    console.log(`✅ Parent folder accessible: ${parentFolder.data.name} (${parentFolder.data.id})`);
+    
+    // List existing folders in the parent directory
+    const existingFolders = await drive.files.list({
+      q: `parents in '${process.env.GOOGLE_DRIVE_FOLDER_ID}' and mimeType='application/vnd.google-apps.folder'`,
+      fields: 'files(id, name)'
+    });
+    
+    console.log(`📂 Existing folders in parent directory: ${existingFolders.data.files.length}`);
+    existingFolders.data.files.forEach(folder => {
+      console.log(`   - ${folder.name} (${folder.id})`);
+    });
+    
+    return true;
+  } catch (error) {
+    console.error('❌ Google Drive setup debug failed:', error);
+    return false;
+  }
+}
+
 async function getOrCreateDialectFolder(dialect) {
   const folderName = getFolderName(dialect);
   
   try {
+    // Ensure we have a valid folder ID
+    if (!process.env.GOOGLE_DRIVE_FOLDER_ID) {
+      throw new Error('GOOGLE_DRIVE_FOLDER_ID environment variable is not set');
+    }
+    
+    console.log(`🔍 Searching for folder: ${folderName} in parent folder: ${process.env.GOOGLE_DRIVE_FOLDER_ID}`);
+    
     // First, check if folder already exists
     const response = await drive.files.list({
       q: `name='${folderName}' and parents in '${process.env.GOOGLE_DRIVE_FOLDER_ID}' and mimeType='application/vnd.google-apps.folder'`,
@@ -155,12 +199,12 @@ async function getOrCreateDialectFolder(dialect) {
     });
     
     if (response.data.files && response.data.files.length > 0) {
-      console.log(`Found existing folder: ${folderName} (ID: ${response.data.files[0].id})`);
+      console.log(`✅ Found existing folder: ${folderName} (ID: ${response.data.files[0].id})`);
       return response.data.files[0].id;
     }
     
     // Create new folder if it doesn't exist
-    console.log(`Creating new folder: ${folderName}`);
+    console.log(`➕ Creating new folder: ${folderName} in parent folder: ${process.env.GOOGLE_DRIVE_FOLDER_ID}`);
     const folderMetadata = {
       name: folderName,
       mimeType: 'application/vnd.google-apps.folder',
@@ -172,11 +216,11 @@ async function getOrCreateDialectFolder(dialect) {
       fields: 'id, name'
     });
     
-    console.log(`Created folder: ${folderName} (ID: ${folder.data.id})`);
+    console.log(`✅ Created folder: ${folderName} (ID: ${folder.data.id})`);
     return folder.data.id;
     
   } catch (error) {
-    console.error(`Error getting/creating folder for ${dialect}:`, error);
+    console.error(`❌ Error getting/creating folder for ${dialect}:`, error);
     throw error;
   }
 }
@@ -243,6 +287,9 @@ app.get('/api/ping', async (req, res) => {
     // Test Google Drive connection
     const driveResponse = await drive.about.get({ fields: 'user' });
     
+    // Debug Google Drive setup
+    const driveDebug = await debugGoogleDriveSetup();
+    
     // Test MongoDB connection
     const sentenceCount = await Sentence.countDocuments();
     const dialectCount = await Dialect.countDocuments();
@@ -251,29 +298,26 @@ app.get('/api/ping', async (req, res) => {
     res.json({
       status: 'ok',
       timestamp: new Date().toISOString(),
-      services: {
-        googleDrive: {
-          connected: true,
-          user: driveResponse.data.user?.emailAddress || 'Connected'
-        },
-        mongodb: {
-          connected: true,
-          sentences: sentenceCount,
-          dialects: dialectCount,
-          recordings: recordingCount
-        },
-        ffmpeg: {
-          available: true,
-          path: process.env.FFMPEG_PATH || 'ffmpeg'
-        }
+      mongo: {
+        connected: true,
+        sentences: sentenceCount,
+        dialects: dialectCount,
+        recordings: recordingCount
       },
-      version: '2.0.0'
+      googleDrive: {
+        connected: true,
+        user: driveResponse.data.user,
+        folderId: process.env.GOOGLE_DRIVE_FOLDER_ID,
+        parentFolderAccessible: driveDebug
+      }
     });
+    
   } catch (error) {
+    console.error('Ping error:', error);
     res.status(500).json({
       status: 'error',
-      error: 'Service connection failed',
-      details: error.message
+      message: error.message,
+      googleDriveFolderId: process.env.GOOGLE_DRIVE_FOLDER_ID || 'Not configured'
     });
   }
 });
