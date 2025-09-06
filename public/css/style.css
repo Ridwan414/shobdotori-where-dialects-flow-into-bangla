@@ -285,17 +285,17 @@ button:disabled:hover {
 
 /* ===== Footer ===== */
 .footer {
-  background: transparent; /* Transparent background */
+  background: transparent; 
   color: #fff;
   text-align: center;
   padding: 10px;
   font-size: 16px;
-  position: fixed; /* Floating footer */
-  bottom: -20px; /* Increased distance from the bottom */
+  position: relative;       /* Always pinned */
+  bottom: -60px;             /* Stick to bottom */
   left: 50%;
-  transform: translateX(-50%); /* Center align */
-  z-index: 100; /* Ensure it stays above other elements */
-  animation: fadeIn 1.5s ease-in-out, floatFooter 3s ease-in-out infinite; /* Add floating animation */
+  transform: translateX(-50%);
+  z-index: 100;
+  animation: fadeIn 1.5s ease-in-out;
 }
 
 .footer:hover {

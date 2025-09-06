@@ -12,7 +12,7 @@ async function loadDialects(showLoading = false) {
     const wasDisabled = dialectSelect.disabled;
     
     if (showLoading) {
-      dialectSelect.innerHTML = '<option value="">🔄 Loading dialects...</option>';
+      dialectSelect.innerHTML = '<option value=""> Loading dialects...</option>';
       dialectSelect.disabled = true;
     }
     
@@ -71,12 +71,12 @@ async function loadDialects(showLoading = false) {
       dialectSelect.appendChild(optgroup);
     });
     
-    console.log(`✅ Loaded ${data.dialects.length} dialects from database${showLoading ? ' (refreshed)' : ''}`);
+    console.log(`Loaded ${data.dialects.length} dialects from database${showLoading ? ' (refreshed)' : ''}`);
     
   } catch (error) {
-    console.error('❌ Error loading dialects:', error);
+    console.error('Error loading dialects:', error);
     const dialectSelect = document.getElementById('dialect');
-    dialectSelect.innerHTML = '<option value="">❌ Error loading dialects</option>';
+    dialectSelect.innerHTML = '<option value=""> Error loading dialects</option>';
   } finally {
     // Re-enable dropdown only if it was disabled by this function
     const dialectSelect = document.getElementById('dialect');
@@ -204,25 +204,25 @@ startBtn.onclick = async () => {
         const res = await fetch(`${BACKEND_URL}/api/upload`, { method: "POST", body: form });
         const data = await res.json();
         if (res.ok && data.success) {
-          statusEl.textContent = `✅ সংরক্ষণ সম্পন্ন হয়েছে: ${data.recording?.filename || data.filename}`;
+          statusEl.textContent = `সংরক্ষণ সম্পন্ন হয়েছে: ${data.recording?.filename || data.filename}`;
           // Flag this sentence for this dialect
           const sentenceId = currentSentence.id || currentSentence.sentenceId;
           if (!flagged[currentDialect]) flagged[currentDialect] = new Set();
           flagged[currentDialect].add(sentenceId);
           
           // Show progress update message
-          statusEl.textContent = "✅ সংরক্ষণ সম্পন্ন! প্রগ্রেস আপডেট হচ্ছে...";
+          statusEl.textContent = "সংরক্ষণ সম্পন্ন! প্রগ্রেস আপডেট হচ্ছে...";
           
           // Refresh dialect dropdown to show updated progress (without loading indicator)
           await loadDialects(false);
           
-          statusEl.textContent = "✅ সংরক্ষণ এবং প্রগ্রেস আপডেট সম্পন্ন হয়েছে!";
+          statusEl.textContent = "সংরক্ষণ এবং প্রগ্রেস আপডেট সম্পন্ন হয়েছে!";
         } else {
-          statusEl.textContent = `❌ সংরক্ষণ ব্যর্থ: ${data.error || 'unknown'}`;
+          statusEl.textContent = `সংরক্ষণ ব্যর্থ: ${data.error || 'unknown'}`;
         }
       } catch (err) {
         console.error(err);
-        statusEl.textContent = "❌ সার্ভারের সাথে সংযোগ ব্যর্থ হয়েছে।";
+        statusEl.textContent = "সার্ভারের সাথে সংযোগ ব্যর্থ হয়েছে।";
       } finally {
         // Remove uploading state
         statusEl.classList.remove('uploading');

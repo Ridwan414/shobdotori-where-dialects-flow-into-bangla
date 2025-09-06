@@ -147,8 +147,8 @@ async function convertToWav(inputBuffer) {
 // Debug function for Google Drive setup
 async function debugGoogleDriveSetup() {
   try {
-    console.log('🔍 Debugging Google Drive Setup...');
-    console.log(`📁 Google Drive Folder ID: ${process.env.GOOGLE_DRIVE_FOLDER_ID || 'Not configured'}`);
+    console.log('Debugging Google Drive Setup...');
+    console.log(`Google Drive Folder ID: ${process.env.GOOGLE_DRIVE_FOLDER_ID || 'Not configured'}`);
     
     if (!process.env.GOOGLE_DRIVE_FOLDER_ID) {
       console.error('❌ GOOGLE_DRIVE_FOLDER_ID is not set!');
@@ -161,7 +161,7 @@ async function debugGoogleDriveSetup() {
       fields: 'id, name, mimeType'
     });
     
-    console.log(`✅ Parent folder accessible: ${parentFolder.data.name} (${parentFolder.data.id})`);
+    console.log(`Parent folder accessible: ${parentFolder.data.name} (${parentFolder.data.id})`);
     
     // List existing folders in the parent directory
     const existingFolders = await drive.files.list({
@@ -169,14 +169,14 @@ async function debugGoogleDriveSetup() {
       fields: 'files(id, name)'
     });
     
-    console.log(`📂 Existing folders in parent directory: ${existingFolders.data.files.length}`);
+    console.log(`Existing folders in parent directory: ${existingFolders.data.files.length}`);
     existingFolders.data.files.forEach(folder => {
       console.log(`   - ${folder.name} (${folder.id})`);
     });
     
     return true;
   } catch (error) {
-    console.error('❌ Google Drive setup debug failed:', error);
+    console.error(' Google Drive setup debug failed:', error);
     return false;
   }
 }
@@ -190,7 +190,7 @@ async function getOrCreateDialectFolder(dialect) {
       throw new Error('GOOGLE_DRIVE_FOLDER_ID environment variable is not set');
     }
     
-    console.log(`🔍 Searching for folder: ${folderName} in parent folder: ${process.env.GOOGLE_DRIVE_FOLDER_ID}`);
+    console.log(` Searching for folder: ${folderName} in parent folder: ${process.env.GOOGLE_DRIVE_FOLDER_ID}`);
     
     // First, check if folder already exists
     const response = await drive.files.list({
@@ -199,12 +199,12 @@ async function getOrCreateDialectFolder(dialect) {
     });
     
     if (response.data.files && response.data.files.length > 0) {
-      console.log(`✅ Found existing folder: ${folderName} (ID: ${response.data.files[0].id})`);
+      console.log(` Found existing folder: ${folderName} (ID: ${response.data.files[0].id})`);
       return response.data.files[0].id;
     }
     
     // Create new folder if it doesn't exist
-    console.log(`➕ Creating new folder: ${folderName} in parent folder: ${process.env.GOOGLE_DRIVE_FOLDER_ID}`);
+    console.log(` Creating new folder: ${folderName} in parent folder: ${process.env.GOOGLE_DRIVE_FOLDER_ID}`);
     const folderMetadata = {
       name: folderName,
       mimeType: 'application/vnd.google-apps.folder',
@@ -216,11 +216,11 @@ async function getOrCreateDialectFolder(dialect) {
       fields: 'id, name'
     });
     
-    console.log(`✅ Created folder: ${folderName} (ID: ${folder.data.id})`);
+    console.log(`Created folder: ${folderName} (ID: ${folder.data.id})`);
     return folder.data.id;
     
   } catch (error) {
-    console.error(`❌ Error getting/creating folder for ${dialect}:`, error);
+    console.error(`Error getting/creating folder for ${dialect}:`, error);
     throw error;
   }
 }
@@ -552,8 +552,8 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
     // Update dialect progress
     await updateDialectAfterRecording(dialectDoc._id, parseInt(sentence_id), recording._id);
     
-    console.log(`✅ Recording saved successfully: ${finalFilename}`);
-    console.log(`📊 Progress: ${dialectDoc.dialectCode} - ${dialectDoc.recordedSentences + 1}/${dialectDoc.totalSentences}`);
+    console.log(` Recording saved successfully: ${finalFilename}`);
+    console.log(` Progress: ${dialectDoc.dialectCode} - ${dialectDoc.recordedSentences + 1}/${dialectDoc.totalSentences}`);
     
     res.json({
       success: true,
@@ -573,7 +573,7 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
     });
     
   } catch (error) {
-    console.error('❌ Upload error:', error.message);
+    console.error(' Upload error:', error.message);
     
     res.status(500).json({
       success: false,
@@ -860,13 +860,13 @@ app.use((err, req, res, next) => {
 
 // Start server
 const server = app.listen(PORT, () => {
-  console.log(`🚀 Shobdotori Backend running on port ${PORT}`);
-  console.log(`📁 Google Drive Folder ID: ${process.env.GOOGLE_DRIVE_FOLDER_ID || 'Not configured'}`);
-  console.log(`🗄️  MongoDB URI: ${process.env.MONGODB_URI || 'mongodb://localhost:27017/shobdotori'}`);
-  console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`⏰ Server started at: ${new Date().toISOString()}`);
-  console.log(`🔗 API endpoints available at: http://localhost:${PORT}/api/*`);
-  console.log(`🎯 Frontend available at: http://localhost:${PORT}/`);
+  console.log(` Shobdotori Backend running on port ${PORT}`);
+  console.log(` Google Drive Folder ID: ${process.env.GOOGLE_DRIVE_FOLDER_ID || 'Not configured'}`);
+  console.log(`  MongoDB URI: ${process.env.MONGODB_URI || 'mongodb://localhost:27017/shobdotori'}`);
+  console.log(` Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(` Server started at: ${new Date().toISOString()}`);
+  console.log(` API endpoints available at: http://localhost:${PORT}/api/*`);
+  console.log(` Frontend available at: http://localhost:${PORT}/`);
 });
 
 // Graceful shutdown handling
