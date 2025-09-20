@@ -1,0 +1,345 @@
+### Delete Dialect Data API Tests
+### This file contains tests for deleting all recordings for specific dialects
+### Endpoint: DELETE /api/dialect
+### Body: JSON with dialectName field
+###
+
+### QUICK REFERENCE - All 30 Valid Dialect Names:
+### 
+### DIVISIONS (8):
+### dhaka, chittagong, rajshahi, khulna, barisal, sylhet, rangpur, mymensingh
+###
+### REGIONS (22):
+### noakhali, comilla, feni, brahmanbaria, sandwip, chandpur, lakshmipur, bhola,
+### patuakhali, bagerhat, jessore, kushtia, jhenaidah, gaibandha, kurigram,
+### panchagarh, lalmonirhat, dinajpur, natore, pabna, sirajganj, bogura
+
+### Test with Dhaka (Division)
+DELETE http://localhost:3000/api/dialect
+Content-Type: application/json
+
+{
+  "dialectName": "dhaka"
+}
+
+###
+
+### Test with Chittagong (Division)
+DELETE http://localhost:3000/api/dialect
+Content-Type: application/json
+
+{
+  "dialectName": "chittagong"
+}
+
+###
+
+### Test with Rajshahi (Division)
+DELETE http://localhost:3000/api/dialect
+Content-Type: application/json
+
+{
+  "dialectName": "rajshahi"
+}
+
+###
+
+### Test with Khulna (Division)
+DELETE http://localhost:3000/api/dialect
+Content-Type: application/json
+
+{
+  "dialectName": "khulna"
+}
+
+###
+
+### Test with Barisal (Division)
+DELETE http://localhost:3000/api/dialect
+Content-Type: application/json
+
+{
+  "dialectName": "barisal"
+}
+
+###
+
+### Test with Sylhet (Division)
+DELETE http://localhost:3000/api/dialect
+Content-Type: application/json
+
+{
+  "dialectName": "sylhet"
+}
+
+###
+
+### Test with Rangpur (Division)
+DELETE http://localhost:3000/api/dialect
+Content-Type: application/json
+
+{
+  "dialectName": "rangpur"
+}
+
+###
+
+### Test with Mymensingh (Division)
+DELETE http://localhost:3000/api/dialect
+Content-Type: application/json
+
+{
+  "dialectName": "mymensingh"
+}
+
+###
+
+### Test with Noakhali (Region)
+DELETE http://localhost:3000/api/dialect
+Content-Type: application/json
+
+{
+  "dialectName": "noakhali"
+}
+
+###
+
+### Test with Comilla (Region)
+DELETE http://localhost:3000/api/dialect
+Content-Type: application/json
+
+{
+  "dialectName": "comilla"
+}
+
+###
+
+### Test with Feni (Region)
+DELETE http://localhost:3000/api/dialect
+Content-Type: application/json
+
+{
+  "dialectName": "feni"
+}
+
+###
+
+### Test with Brahmanbaria (Region)
+DELETE http://localhost:3000/api/dialect
+Content-Type: application/json
+
+{
+  "dialectName": "brahmanbaria"
+}
+
+###
+
+### Test with Sandwip (Region)
+DELETE http://localhost:3000/api/dialect
+Content-Type: application/json
+
+{
+  "dialectName": "sandwip"
+}
+
+###
+
+### Test with Chandpur (Region)
+DELETE http://localhost:3000/api/dialect
+Content-Type: application/json
+
+{
+  "dialectName": "chandpur"
+}
+
+###
+
+### Test with Lakshmipur (Region)
+DELETE http://localhost:3000/api/dialect
+Content-Type: application/json
+
+{
+  "dialectName": "lakshmipur"
+}
+
+###
+
+### Test with Bhola (Region)
+DELETE http://localhost:3000/api/dialect
+Content-Type: application/json
+
+{
+  "dialectName": "bhola"
+}
+
+###
+
+### Test with Patuakhali (Region)
+DELETE http://localhost:3000/api/dialect
+Content-Type: application/json
+
+{
+  "dialectName": "patuakhali"
+}
+
+###
+
+### Test with Bagerhat (Region)
+DELETE http://localhost:3000/api/dialect
+Content-Type: application/json
+
+{
+  "dialectName": "bagerhat"
+}
+
+###
+
+### Test with Jessore (Region)
+DELETE http://localhost:3000/api/dialect
+Content-Type: application/json
+
+{
+  "dialectName": "jessore"
+}
+
+###
+
+### Test with Kushtia (Region)
+DELETE http://localhost:3000/api/dialect
+Content-Type: application/json
+
+{
+  "dialectName": "kushtia"
+}
+
+###
+
+### Test with Jhenaidah (Region)
+DELETE http://localhost:3000/api/dialect
+Content-Type: application/json
+
+{
+  "dialectName": "jhenaidah"
+}
+
+###
+
+### Test with Gaibandha (Region)
+DELETE http://localhost:3000/api/dialect
+Content-Type: application/json
+
+{
+  "dialectName": "gaibandha"
+}
+
+###
+
+### Test with Kurigram (Region)
+DELETE http://localhost:3000/api/dialect
+Content-Type: application/json
+
+{
+  "dialectName": "kurigram"
+}
+
+###
+
+### Test with Panchagarh (Region)
+DELETE http://localhost:3000/api/dialect
+Content-Type: application/json
+
+{
+  "dialectName": "panchagarh"
+}
+
+###
+
+### Test with Lalmonirhat (Region)
+DELETE http://localhost:3000/api/dialect
+Content-Type: application/json
+
+{
+  "dialectName": "lalmonirhat"
+}
+
+###
+
+### Test with Dinajpur (Region)
+DELETE http://localhost:3000/api/dialect
+Content-Type: application/json
+
+{
+  "dialectName": "dinajpur"
+}
+
+###
+
+### Test with Natore (Region)
+DELETE http://localhost:3000/api/dialect
+Content-Type: application/json
+
+{
+  "dialectName": "natore"
+}
+
+###
+
+### Test with Pabna (Region)
+DELETE http://localhost:3000/api/dialect
+Content-Type: application/json
+
+{
+  "dialectName": "pabna"
+}
+
+###
+
+### Test with Sirajganj (Region)
+DELETE http://localhost:3000/api/dialect
+Content-Type: application/json
+
+{
+  "dialectName": "sirajganj"
+}
+
+###
+
+### Test with Bogura (Region)
+DELETE http://localhost:3000/api/dialect
+Content-Type: application/json
+
+{
+  "dialectName": "bogura"
+}
+
+###
+
+### Test Error Cases
+
+### Test with invalid dialect name
+DELETE http://localhost:3000/api/dialect
+Content-Type: application/json
+
+{
+  "dialectName": "invalid_dialect"
+}
+
+###
+
+### Test with missing dialectName
+DELETE http://localhost:3000/api/dialect
+Content-Type: application/json
+
+{
+}
+
+###
+
+### Test with empty dialectName
+DELETE http://localhost:3000/api/dialect
+Content-Type: application/json
+
+{
+  "dialectName": ""
+}
+

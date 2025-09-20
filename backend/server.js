@@ -31,7 +31,7 @@ connectDB();
 const allowedOrigins = process.env.ALLOWED_ORIGINS?.split(',') || ['*'];
 app.use(cors({
   origin: allowedOrigins,
-  methods: ['GET', 'POST'],
+  methods: ['GET', 'POST', 'DELETE'],
   allowedHeaders: ['Content-Type']
 }));
 
@@ -855,6 +855,129 @@ app.get('/api/files', async (req, res) => {
     res.status(500).json({
       success: false,
       error: 'Failed to list files',
+      details: error.message
+    });
+  }
+});
+
+// DELETE API - Delete all recordings for a dialect (both DB and Google Drive)
+app.delete('/api/dialect', async (req, res) => {
+  try {
+    const { dialectName } = req.body;
+    
+    if (!dialectName) {
+      return res.status(400).json({
+        success: false,
+        error: 'dialectName is required in request body'
+      });
+    }
+    
+    const dialectCode = dialectName.toLowerCase().trim();
+    
+    // Validate dialect name
+    if (!dialectToFolder[dialectCode]) {
+      return res.status(400).json({
+        success: false,
+        error: `Invalid dialect name. Must be one of: ${Object.keys(dialectToFolder).join(', ')}`
+      });
+    }
+    
+    console.log(`🗑️ Starting deletion process for dialect: ${dialectCode}`);
+    
+    // Find dialect in database
+    const dialect = await Dialect.findOne({ dialectCode });
+    if (!dialect) {
+      return res.status(404).json({
+        success: false,
+        error: 'Dialect not found in database'
+      });
+    }
+    
+    // Get all recordings for this dialect
+    const recordings = await Recording.find({ dialectId: dialect._id });
+    console.log(`📊 Found ${recordings.length} recordings to delete for ${dialectCode}`);
+    
+    let deletedFiles = 0;
+    let failedFiles = 0;
+    const errors = [];
+    
+    // Delete files from Google Drive
+    for (const recording of recordings) {
+      try {
+        console.log(`🗑️ Deleting Google Drive file: ${recording.filename} (ID: ${recording.googleDriveId})`);
+        await drive.files.delete({ fileId: recording.googleDriveId });
+        deletedFiles++;
+      } catch (error) {
+        console.error(`❌ Failed to delete file ${recording.filename}:`, error.message);
+        errors.push(`Failed to delete ${recording.filename}: ${error.message}`);
+        failedFiles++;
+      }
+    }
+    
+    // Delete all recordings from database
+    const deletedRecordings = await Recording.deleteMany({ dialectId: dialect._id });
+    console.log(`🗑️ Deleted ${deletedRecordings.deletedCount} recordings from database`);
+    
+    // Reset dialect progress - Get all sentence IDs and mark as unrecorded
+    const allSentences = await Sentence.find({}).select('sentenceId');
+    const allSentenceIds = allSentences.map(s => s.sentenceId).sort((a, b) => a - b);
+    
+    dialect.recordedSentenceIds = [];
+    dialect.unrecordedSentenceIds = [...allSentenceIds];
+    dialect.recordingIds = [];
+    dialect.status = 'in_progress';
+    dialect.lastRecordedAt = null;
+    
+    await dialect.save();
+    console.log(`✅ Reset dialect progress for ${dialectCode}`);
+    
+    // Try to delete the dialect folder from Google Drive (if empty)
+    try {
+      const folderName = getFolderName(dialectCode);
+      const folderResponse = await drive.files.list({
+        q: `name='${folderName}' and parents in '${process.env.GOOGLE_DRIVE_FOLDER_ID}' and mimeType='application/vnd.google-apps.folder'`,
+        fields: 'files(id, name)'
+      });
+      
+      if (folderResponse.data.files && folderResponse.data.files.length > 0) {
+        const folderId = folderResponse.data.files[0].id;
+        
+        // Check if folder is empty
+        const folderContents = await drive.files.list({
+          q: `parents in '${folderId}'`,
+          fields: 'files(id)'
+        });
+        
+        if (folderContents.data.files && folderContents.data.files.length === 0) {
+          await drive.files.delete({ fileId: folderId });
+          console.log(`🗑️ Deleted empty folder: ${folderName}`);
+        } else {
+          console.log(`⚠️ Folder ${folderName} not empty, keeping it`);
+        }
+      }
+    } catch (error) {
+      console.error(`❌ Failed to delete folder:`, error.message);
+      errors.push(`Failed to delete folder: ${error.message}`);
+    }
+    
+    res.json({
+      success: true,
+      message: `Successfully deleted all data for dialect: ${dialectCode}`,
+      summary: {
+        dialectCode,
+        dialectName: getFolderName(dialectCode),
+        deletedRecordings: deletedRecordings.deletedCount,
+        deletedFiles,
+        failedFiles,
+        errors: errors.length > 0 ? errors : undefined
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ Delete dialect error:', error.message);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to delete dialect data',
       details: error.message
     });
   }
