@@ -16,11 +16,23 @@
     <div class="instructions">
       <h2>ব্যবহার নির্দেশিকা</h2>
       <ol>
-        <li><strong>উপভাষা</strong> নির্বাচন করুন।</li>
+        <li><strong>লিঙ্গ</strong> এবং <strong>উপভাষা</strong> নির্বাচন করুন।</li>
         <li><strong>"রেকর্ড শুরু"</strong> চাপুন → প্রদত্ত <strong>বাক্য</strong> পড়ুন → তারপর <strong>"রেকর্ড শেষ"</strong> চাপুন।</li>
+        <li>রেকর্ড শেষে <strong>প্রিভিউ</strong> শুনুন এবং সন্তুষ্ট হলে <strong>"জমা দিন"</strong> চাপুন।</li>
         <li>প্রতিটি রেকর্ডে কেবলমাত্র <strong>একটি বাক্য</strong> পড়ুন।</li>
         <li>প্রতি নতুন রেকর্ড শুরু করলে <strong>একটি নতুন বাক্য</strong> প্রদর্শিত হবে।</li>
       </ol>
+    </div>
+
+    <!-- Gender Selection -->
+    <div class="gender-selection">
+      <label for="gender">লিঙ্গ নির্বাচন করুন:</label>
+      <div class="gender-options">
+        <input type="radio" id="male" name="gender" value="male">
+        <label for="male">পুরুষ (Male)</label>
+        <input type="radio" id="female" name="gender" value="female">
+        <label for="female">মহিলা (Female)</label>
+      </div>
     </div>
 
     <!-- Dropdown -->
@@ -44,6 +56,16 @@
       <button id="startBtn">রেকর্ড শুরু</button>
       <button id="stopBtn" disabled>রেকর্ড শেষ</button>
       <p id="status">রেকর্ড করার জন্য <strong>"রেকর্ড শুরু"</strong> চাপুন</p>
+    </div>
+
+    <!-- Audio Preview Section -->
+    <div id="previewSection" class="preview-section hidden">
+      <h3>রেকর্ডিং প্রিভিউ</h3>
+      <audio id="audioPreview" controls></audio>
+      <div class="preview-controls">
+        <button id="submitBtn" class="submit-btn">জমা দিন</button>
+        <button id="retryBtn" class="retry-btn">আবার রেকর্ড করুন</button>
+      </div>
     </div>
   </div>
 

@@ -93,12 +93,17 @@ const stopBtn = document.getElementById("stopBtn");
 const statusEl = document.getElementById("status");
 const dialectSel = document.getElementById("dialect");
 const floating = document.getElementById("recordingBox");
+const previewSection = document.getElementById("previewSection");
+const audioPreview = document.getElementById("audioPreview");
+const submitBtn = document.getElementById("submitBtn");
+const retryBtn = document.getElementById("retryBtn");
 
 // Recording state
 let mediaRecorder, audioChunks = [];
 let currentIndex = 0;
 let currentSentence = null;
 let currentDialect = "";
+let recordedBlob = null;
 
 // Initialize the app
 async function initApp() {
@@ -148,9 +153,49 @@ async function getNextSentence(dialect) {
   return data;
 }
 
+// Get selected gender
+function getSelectedGender() {
+  const genderRadios = document.querySelectorAll('input[name="gender"]');
+  for (const radio of genderRadios) {
+    if (radio.checked) {
+      return radio.value;
+    }
+  }
+  return null;
+}
+
+// Validate inputs before recording
+function validateInputs() {
+  const selectedGender = getSelectedGender();
+  const selectedDialect = dialectSel.value;
+  
+  if (!selectedGender) {
+    alert("প্রথমে লিঙ্গ নির্বাচন করুন");
+    return false;
+  }
+  
+  if (!selectedDialect) {
+    alert("প্রথমে একটি উপভাষা নির্বাচন করুন");
+    return false;
+  }
+  
+  return true;
+}
+
+// Reset UI to initial state
+function resetUI() {
+  previewSection.classList.add("hidden");
+  sentenceEl.textContent = "রেকর্ড শুরু চাপুন, একটি বাক্য আসবে।";
+  statusEl.textContent = "রেকর্ড করার জন্য 'রেকর্ড শুরু' চাপুন";
+  startBtn.disabled = false;
+  stopBtn.disabled = true;
+  recordedBlob = null;
+}
+
 startBtn.onclick = async () => {
+  if (!validateInputs()) return;
+  
   currentDialect = dialectSel.value;
-  if (!currentDialect) { alert("প্রথমে একটি উপভাষা নির্বাচন করুন"); return; }
 
   try { 
     currentIndex = await getNextIndex(currentDialect);
@@ -182,61 +227,28 @@ startBtn.onclick = async () => {
   mediaRecorder.ondataavailable = e => { if (e.data.size) audioChunks.push(e.data); };
 
   mediaRecorder.onstop = async () => {
-    if (currentSentence && currentSentence.id) {
-      // Show uploading state
-      statusEl.textContent = "আপলোড হচ্ছে... অনুগ্রহ করে অপেক্ষা করুন।";
-      startBtn.disabled = true;
-      stopBtn.disabled = true;
-      dialectSel.disabled = true;
-      
-      // Add uploading class for spinner
-      statusEl.classList.add('uploading');
-      
-      const blob = new Blob(audioChunks, { type: mime || "application/octet-stream" });
-      const form = new FormData();
-      form.append("file", blob, "recording.webm");
-      form.append("dialect", currentDialect);
-      form.append("index", String(currentIndex));
-      form.append("sentence_id", String(currentSentence.id || currentSentence.sentenceId));
-      form.append("sentence_text", currentSentence.text);
-
-      try {
-        const res = await fetch(`${BACKEND_URL}/api/upload`, { method: "POST", body: form });
-        const data = await res.json();
-        if (res.ok && data.success) {
-          statusEl.textContent = `সংরক্ষণ সম্পন্ন হয়েছে: ${data.recording?.filename || data.filename}`;
-          // Flag this sentence for this dialect
-          const sentenceId = currentSentence.id || currentSentence.sentenceId;
-          if (!flagged[currentDialect]) flagged[currentDialect] = new Set();
-          flagged[currentDialect].add(sentenceId);
-          
-          // Show progress update message
-          statusEl.textContent = "সংরক্ষণ সম্পন্ন! প্রগ্রেস আপডেট হচ্ছে...";
-          
-          // Refresh dialect dropdown to show updated progress (without loading indicator)
-          await loadDialects(false);
-          
-          statusEl.textContent = "সংরক্ষণ এবং প্রগ্রেস আপডেট সম্পন্ন হয়েছে!";
-        } else {
-          statusEl.textContent = `সংরক্ষণ ব্যর্থ: ${data.error || 'unknown'}`;
-        }
-      } catch (err) {
-        console.error(err);
-        statusEl.textContent = "সার্ভারের সাথে সংযোগ ব্যর্থ হয়েছে।";
-      } finally {
-        // Remove uploading state
-        statusEl.classList.remove('uploading');
-        startBtn.disabled = false;
-        stopBtn.disabled = true;
-        dialectSel.disabled = false;
-      }
-    }
-
-    // Hide sentence until next record
-    sentenceEl.textContent = "রেকর্ড শেষ হয়েছে। নতুন বাক্য আসবে।";
+    // Create blob for preview
+    recordedBlob = new Blob(audioChunks, { type: mime || "application/octet-stream" });
+    
+    // Create URL for audio preview
+    const audioURL = URL.createObjectURL(recordedBlob);
+    audioPreview.src = audioURL;
+    
+    // Show preview section
+    previewSection.classList.remove("hidden");
+    
+    // Update status
+    statusEl.textContent = "রেকর্ডিং সম্পন্ন! প্রিভিউ শুনুন এবং জমা দিন বা আবার রেকর্ড করুন।";
+    
+    // Hide floating recording box
     floating.classList.add("hidden");
+    
+    // Enable start button for retry
     startBtn.disabled = false;
     stopBtn.disabled = true;
+    
+    // Stop all media tracks
+    stream.getTracks().forEach(track => track.stop());
   };
 
   mediaRecorder.start();
@@ -248,5 +260,93 @@ startBtn.onclick = async () => {
 
 stopBtn.onclick = () => {
   if (mediaRecorder && mediaRecorder.state !== "inactive") mediaRecorder.stop();
-  statusEl.textContent = "রেকর্ড শেষ হয়েছে।";
+  statusEl.textContent = "রেকর্ড শেষ হয়েছে। প্রিভিউ লোড হচ্ছে...";
+};
+
+// Submit recording
+submitBtn.onclick = async () => {
+  if (!recordedBlob || !currentSentence) {
+    alert("রেকর্ডিং পাওয়া যায়নি। আবার রেকর্ড করুন।");
+    return;
+  }
+  
+  const selectedGender = getSelectedGender();
+  if (!selectedGender) {
+    alert("লিঙ্গ নির্বাচন করুন।");
+    return;
+  }
+  
+  // Show uploading state
+  statusEl.textContent = "আপলোড হচ্ছে... অনুগ্রহ করে অপেক্ষা করুন।";
+  submitBtn.disabled = true;
+  retryBtn.disabled = true;
+  startBtn.disabled = true;
+  dialectSel.disabled = true;
+  
+  // Disable gender selection during upload
+  const genderRadios = document.querySelectorAll('input[name="gender"]');
+  genderRadios.forEach(radio => radio.disabled = true);
+  
+  // Add uploading class for spinner
+  statusEl.classList.add('uploading');
+  
+  const form = new FormData();
+  form.append("file", recordedBlob, "recording.webm");
+  form.append("dialect", currentDialect);
+  form.append("gender", selectedGender);
+  form.append("index", String(currentIndex));
+  form.append("sentence_id", String(currentSentence.id || currentSentence.sentenceId));
+  form.append("sentence_text", currentSentence.text);
+
+  try {
+    const res = await fetch(`${BACKEND_URL}/api/upload`, { method: "POST", body: form });
+    const data = await res.json();
+    if (res.ok && data.success) {
+      statusEl.textContent = `সংরক্ষণ সম্পন্ন হয়েছে: ${data.recording?.filename || data.filename}`;
+      // Flag this sentence for this dialect
+      const sentenceId = currentSentence.id || currentSentence.sentenceId;
+      if (!flagged[currentDialect]) flagged[currentDialect] = new Set();
+      flagged[currentDialect].add(sentenceId);
+      
+      // Show progress update message
+      statusEl.textContent = "সংরক্ষণ সম্পন্ন! প্রগ্রেস আপডেট হচ্ছে...";
+      
+      // Refresh dialect dropdown to show updated progress (without loading indicator)
+      await loadDialects(false);
+      
+      statusEl.textContent = "সংরক্ষণ এবং প্রগ্রেস আপডেট সম্পন্ন হয়েছে!";
+      
+      // Reset UI for next recording
+      setTimeout(() => {
+        resetUI();
+      }, 2000);
+      
+    } else {
+      statusEl.textContent = `সংরক্ষণ ব্যর্থ: ${data.error || 'unknown'}`;
+    }
+  } catch (err) {
+    console.error(err);
+    statusEl.textContent = "সার্ভারের সাথে সংযোগ ব্যর্থ হয়েছে।";
+  } finally {
+    // Remove uploading state
+    statusEl.classList.remove('uploading');
+    submitBtn.disabled = false;
+    retryBtn.disabled = false;
+    dialectSel.disabled = false;
+    
+    // Re-enable gender selection
+    genderRadios.forEach(radio => radio.disabled = false);
+  }
+};
+
+// Retry recording
+retryBtn.onclick = () => {
+  // Clean up preview
+  if (audioPreview.src) {
+    URL.revokeObjectURL(audioPreview.src);
+    audioPreview.src = '';
+  }
+  
+  // Reset UI
+  resetUI();
 };

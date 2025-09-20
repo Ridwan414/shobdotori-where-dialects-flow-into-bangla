@@ -35,6 +35,65 @@ body {
   animation: float 3s ease-in-out infinite;
 }
 
+/* ===== Gender Selection ===== */
+.gender-selection {
+  margin-bottom: 20px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.gender-selection:hover {
+  transform: scale(1.02);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+}
+
+.gender-selection label {
+  display: block;
+  font-size: 18px;
+  font-weight: bold;
+  margin-bottom: 15px;
+  color: #fff;
+}
+
+.gender-options {
+  display: flex;
+  justify-content: center;
+  gap: 30px;
+  flex-wrap: wrap;
+}
+
+.gender-options input[type="radio"] {
+  margin-right: 8px;
+  transform: scale(1.2);
+  accent-color: #28a745;
+}
+
+.gender-options label {
+  display: flex;
+  align-items: center;
+  font-size: 16px;
+  font-weight: normal;
+  margin-bottom: 0;
+  cursor: pointer;
+  padding: 10px 15px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  transition: background 0.3s ease, transform 0.2s ease;
+}
+
+.gender-options label:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: scale(1.05);
+}
+
+.gender-options input[type="radio"]:checked + label {
+  background: rgba(40, 167, 69, 0.3);
+  border: 2px solid #28a745;
+}
+
 /* ===== Dropdown ===== */
 .dropdown {
   margin-bottom: 20px;
@@ -152,6 +211,64 @@ select optgroup option {
 /* ===== Recorder area ===== */
 .recorder {
   margin-top: 25px;
+}
+
+/* ===== Audio Preview Section ===== */
+.preview-section {
+  margin-top: 25px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.preview-section.hidden {
+  display: none;
+}
+
+.preview-section:hover {
+  transform: scale(1.02);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5);
+}
+
+.preview-section h3 {
+  margin-bottom: 15px;
+  color: #fff;
+  font-size: 20px;
+}
+
+#audioPreview {
+  width: 100%;
+  max-width: 400px;
+  margin-bottom: 20px;
+  border-radius: 8px;
+  outline: none;
+}
+
+.preview-controls {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  flex-wrap: wrap;
+}
+
+.submit-btn {
+  background: #28a745; /* Green for submit */
+  color: #fff;
+}
+
+.submit-btn:hover {
+  background: #218838;
+}
+
+.retry-btn {
+  background: #dc3545; /* Red for retry */
+  color: #fff;
+}
+
+.retry-btn:hover {
+  background: #c82333;
 }
 
 button {

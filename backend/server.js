@@ -110,9 +110,14 @@ function getFolderName(dialect) {
   return dialectToFolder[sanitized] || sanitized.charAt(0).toUpperCase() + sanitized.slice(1);
 }
 
-function generateFilename(dialect, index) {
-  // Use 1-based indexing and format: dialectname_index.wav (e.g., dhaka_1.wav)
-  return `${sanitizeDialect(dialect)}_${index}.wav`;
+function generateFilename(dialect, index, gender = null) {
+  // Use 1-based indexing and format: gender_dialectname_index.wav (e.g., male_dhaka_1.wav)
+  const sanitizedDialect = sanitizeDialect(dialect);
+  if (gender) {
+    return `${gender}_${sanitizedDialect}_${index}.wav`;
+  }
+  // Fallback to old format if no gender provided
+  return `${sanitizedDialect}_${index}.wav`;
 }
 
 async function convertToWav(inputBuffer) {
@@ -467,7 +472,7 @@ app.get('/api/next-sentence', async (req, res) => {
 
 app.post('/api/upload', upload.single('file'), async (req, res) => {
   try {
-    const { dialect, index, sentence_id, sentence_text } = req.body;
+    const { dialect, index, sentence_id, sentence_text, gender } = req.body;
     
     if (!req.file) {
       return res.status(400).json({
@@ -480,6 +485,13 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
       return res.status(400).json({
         success: false,
         error: 'Dialect and sentence_id are required'
+      });
+    }
+    
+    if (!gender || !['male', 'female'].includes(gender.toLowerCase())) {
+      return res.status(400).json({
+        success: false,
+        error: 'Gender is required and must be either "male" or "female"'
       });
     }
     
@@ -523,7 +535,7 @@ app.post('/api/upload', upload.single('file'), async (req, res) => {
     
     // Use provided index or get next index
     const fileIndex = index ? parseInt(index) : dialectDoc.nextIndex;
-    const finalFilename = generateFilename(dialect, fileIndex);
+    const finalFilename = generateFilename(dialect, fileIndex, gender.toLowerCase());
     
     // Convert to WAV if needed
     let audioBuffer = req.file.buffer;
